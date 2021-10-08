@@ -34,31 +34,10 @@ def predict_surprise(X_train, y_train, X_test):
 
 def predict_raw_python(X_train, y_train, X_test):
     n_factors = 100
-
-    user_ids_uq, user_ids_uq_idx = np.unique(X_train[0, :], return_inverse=True)
-    # item_ids_uq = np.unique(X_train[1, :], return_inverse=True)
-
-
-if __name__ == '__main__':
-    data = as_numpy(MOVIELENS_100K)
-    X, y = data[:, 0:2], data[:, 2]
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-
-    # start_time = time.perf_counter()
-    # y_test_pred_naive = predict_naive(X_train, y_train, X_test)
-    # print(f'Surprise: {mean_squared_error(y_test, y_test_pred_naive, squared=False):.4f} RMSE, '
-    #       f'{time.perf_counter() - start_time:.6f} seconds')
-    #
-    # start_time = time.perf_counter()
-    # y_test_pred_surprise = predict_surprise(X_train, y_train, X_test)
-    # print(f'Surprise: {mean_squared_error(y_test, y_test_pred_surprise, squared=False):.4f} RMSE, '
-    #       f'{time.perf_counter() - start_time:.6f} seconds')
-
-    n_factors = 100
     reg = 0.02
     learning_rate = 0.005
     n_epochs = 20
+    rng = np.random.default_rng()
 
     user_ids_uq = np.unique(X_train[:, 0])
     item_ids_uq = np.unique(X_train[:, 1])
@@ -70,13 +49,13 @@ if __name__ == '__main__':
 
     mean_rating = np.mean(y_train)
 
-    user_factors = np.random.randn(len(user_ids_uq), n_factors)
-    item_factors = np.random.randn(len(item_ids_uq), n_factors)
+    user_factors = rng.normal(size=(len(user_ids_uq), n_factors), loc=0, scale=.1)
+    item_factors = rng.normal(size=(len(item_ids_uq), n_factors), loc=0, scale=.1)
     user_biases = np.zeros(len(user_ids_uq))
     item_biases = np.zeros(len(item_ids_uq))
 
     for epoch_number in range(n_epochs):
-        print(f'Epoch #{epoch_number}')
+        # print(f'Epoch #{epoch_number}')
         for i in range(len(X_train_widx)):
             row = X_train_widx[i]
             r_ui = y_train[i]
@@ -106,7 +85,8 @@ if __name__ == '__main__':
         original_row = X_test[i]
 
         u_idx, i_idx = row[0], row[1]
-        if user_ids_uq[u_idx] != original_row[0] or item_ids_uq[i_idx] != original_row[1]:
+        if u_idx < 0 or u_idx >= len(user_ids_uq) or user_ids_uq[u_idx] != original_row[0] \
+                or i_idx < 0 or i_idx >= len(item_ids_uq) or item_ids_uq[i_idx] != original_row[1]:
             continue
 
         b_u = user_biases[u_idx]
@@ -116,4 +96,26 @@ if __name__ == '__main__':
 
         y_pred[i] = mean_rating + b_u + b_i + np.dot(p_u, q_i)
 
-    print(f'RMSE: {mean_squared_error(y_test, y_pred, squared=False):.4f}')
+    return y_pred
+
+
+if __name__ == '__main__':
+    data = as_numpy(MOVIELENS_100K)
+    X, y = data[:, 0:2], data[:, 2]
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+    start_time = time.perf_counter()
+    y_test_pred_naive = predict_naive(X_train, y_train, X_test)
+    print(f'Surprise: {mean_squared_error(y_test, y_test_pred_naive, squared=False):.4f} RMSE, '
+          f'{time.perf_counter() - start_time:.6f} seconds')
+
+    start_time = time.perf_counter()
+    y_test_pred_surprise = predict_surprise(X_train, y_train, X_test)
+    print(f'Surprise: {mean_squared_error(y_test, y_test_pred_surprise, squared=False):.4f} RMSE, '
+          f'{time.perf_counter() - start_time:.6f} seconds')
+
+    start_time = time.perf_counter()
+    y_test_pred_raw_python = predict_raw_python(X_train, y_train, X_test)
+    print(f'Raw python: {mean_squared_error(y_test, y_test_pred_raw_python, squared=False):.4f} RMSE, '
+          f'{time.perf_counter() - start_time:.6f} seconds')
