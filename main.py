@@ -146,23 +146,42 @@ def predict_numba_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_uq, n_
     user_biases = np.zeros(len(user_ids_uq))
     item_biases = np.zeros(len(item_ids_uq))
 
+    b_u = user_biases[0]
+    b_i = item_biases[0]
+    p_u = user_factors[0]
+    q_i = item_factors[0]
+    p_u_buf = np.zeros_like(p_u)
+    q_i_buf = np.zeros_like(q_i)
+    prev_u_idx = 0
+    prev_i_idx = 0
     for epoch_number in range(n_epochs):
         for i in range(len(train)):
             row = train[i]
-
             u_idx, i_idx, r_ui = row[0], row[1], row[2]
-            b_u = user_biases[u_idx]
-            b_i = item_biases[i_idx]
-            p_u = user_factors[u_idx]
-            q_i = item_factors[i_idx]
+
+            if prev_u_idx != u_idx:
+                user_biases[prev_u_idx] = b_u
+                user_factors[prev_u_idx] = p_u
+                b_u = user_biases[u_idx]
+                p_u = user_factors[u_idx]
+
+            if prev_i_idx != i_idx:
+                item_biases[prev_i_idx] = b_i
+                item_factors[prev_i_idx] = q_i
+                b_i = item_biases[i_idx]
+                q_i = item_factors[i_idx]
 
             r_ui_pred = mean_rating + b_u + b_i + np.dot(p_u, q_i)
 
             e_ui = r_ui - r_ui_pred
-            user_biases[u_idx] = b_u + learning_rate * (e_ui - reg * b_u)
-            item_biases[i_idx] = b_i + learning_rate * (e_ui - reg * b_i)
-            user_factors[u_idx] = p_u + learning_rate * (e_ui * q_i - reg * p_u)
-            item_factors[i_idx] = q_i + learning_rate * (e_ui * p_u - reg * q_i)
+            b_u += learning_rate * (e_ui - reg * b_u)
+            b_i += learning_rate * (e_ui - reg * b_i)
+
+            for j in range(n_factors):
+                p_u_j = p_u[j]
+                q_i_j = q_i[j]
+                p_u[j] = p_u_j + learning_rate * (e_ui * q_i_j - reg * p_u_j)
+                q_i[j] = q_i_j + learning_rate * (e_ui * p_u_j - reg * q_i_j)
 
     with objmode():
         print(time.perf_counter() - start_time)
