@@ -136,9 +136,6 @@ def predict_raw_python(X_train, y_train, X_test):
      nopython=True, cache=True, fastmath=True)
 def predict_numba_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_uq, n_factors, n_epochs,
                         learning_rate, reg):
-    with objmode(start_time='f8'):
-        start_time = time.perf_counter()
-
     mean_rating = np.mean(train[:, 2])
 
     user_factors = np.random.normal(size=(len(user_ids_uq), n_factors), loc=0, scale=.1)
@@ -150,8 +147,6 @@ def predict_numba_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_uq, n_
     b_i = item_biases[0]
     p_u = user_factors[0]
     q_i = item_factors[0]
-    p_u_buf = np.zeros_like(p_u)
-    q_i_buf = np.zeros_like(q_i)
     prev_u_idx = 0
     prev_i_idx = 0
     for epoch_number in range(n_epochs):
@@ -159,11 +154,15 @@ def predict_numba_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_uq, n_
             row = train[i]
             u_idx, i_idx, r_ui = row[0], row[1], row[2]
 
+            # Reading/Writing variables
+
             if prev_u_idx != u_idx:
                 user_biases[prev_u_idx] = b_u
                 user_factors[prev_u_idx] = p_u
                 b_u = user_biases[u_idx]
                 p_u = user_factors[u_idx]
+
+                prev_u_idx = u_idx
 
             if prev_i_idx != i_idx:
                 item_biases[prev_i_idx] = b_i
@@ -171,20 +170,28 @@ def predict_numba_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_uq, n_
                 b_i = item_biases[i_idx]
                 q_i = item_factors[i_idx]
 
-            r_ui_pred = mean_rating + b_u + b_i + np.dot(p_u, q_i)
+                prev_i_idx = i_idx
 
+            # Calculating the prediction and its error
+            r_ui_pred = mean_rating + b_u + b_i + np.dot(p_u, q_i)
             e_ui = r_ui - r_ui_pred
+
+            # Updating biases
             b_u += learning_rate * (e_ui - reg * b_u)
             b_i += learning_rate * (e_ui - reg * b_i)
 
+            # Updating factors
             for j in range(n_factors):
                 p_u_j = p_u[j]
                 q_i_j = q_i[j]
                 p_u[j] = p_u_j + learning_rate * (e_ui * q_i_j - reg * p_u_j)
                 q_i[j] = q_i_j + learning_rate * (e_ui * p_u_j - reg * q_i_j)
 
-    with objmode():
-        print(time.perf_counter() - start_time)
+    # Biases and factors are not updated at the last iteration, so here the manual last update
+    user_biases[prev_u_idx] = b_u
+    user_factors[prev_u_idx] = p_u
+    item_biases[prev_i_idx] = b_i
+    item_factors[prev_i_idx] = q_i
 
     y_pred = np.full((len(X_test_widx)), mean_rating)
 
