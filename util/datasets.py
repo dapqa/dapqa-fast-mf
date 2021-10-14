@@ -151,6 +151,9 @@ def as_numpy(dataset_descriptor: DatasetDescriptor, only_ratings=True) -> np.nda
 # Runnable part
 
 if __name__ == '__main__':
+    while not os.path.exists('.gitignore'):
+        os.chdir('..')
+
     download_and_transform_dataset(MOVIELENS_100K)
     download_and_transform_dataset(MOVIELENS_1M)
-    # download_and_transform_dataset(MOVIELENS_10M)
+    download_and_transform_dataset(MOVIELENS_10M)

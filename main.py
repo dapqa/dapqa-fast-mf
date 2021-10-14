@@ -1,4 +1,4 @@
-from util.datasets import MOVIELENS_100K, as_numpy, MOVIELENS_1M
+from util.datasets import MOVIELENS_100K, as_numpy, MOVIELENS_1M, MOVIELENS_10M
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 
@@ -105,6 +105,7 @@ def predict_raw_python(X_train, y_train, X_test):
 
 @jit(types.Array(types.float64, 1, 'C')
          (types.Array(types.int64, 2, 'C'),
+          types.Array(types.float64, 1, 'C'),
           types.Array(types.int64, 2, 'C'),
           types.Array(types.int64, 2, 'C'),
           types.Array(types.int64, 1, 'C'),
@@ -134,9 +135,9 @@ def predict_raw_python(X_train, y_train, X_test):
          'y_pred': types.Array(types.float64, 1, 'C'),
      },
      nopython=True, cache=True, fastmath=True)
-def predict_numba_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_uq, n_factors, n_epochs,
+def predict_numba_inner(X_train_widx, y_train, X_test, X_test_widx, user_ids_uq, item_ids_uq, n_factors, n_epochs,
                         learning_rate, reg):
-    mean_rating = np.mean(train[:, 2])
+    mean_rating = np.mean(y_train)
 
     user_factors = np.random.normal(size=(len(user_ids_uq), n_factors), loc=0, scale=.1)
     item_factors = np.random.normal(size=(len(item_ids_uq), n_factors), loc=0, scale=.1)
@@ -150,9 +151,10 @@ def predict_numba_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_uq, n_
     prev_u_idx = 0
     prev_i_idx = 0
     for epoch_number in range(n_epochs):
-        for i in range(len(train)):
-            row = train[i]
-            u_idx, i_idx, r_ui = row[0], row[1], row[2]
+        for i in range(len(X_train_widx)):
+            r_ui = y_train[i]
+            row = X_train_widx[i]
+            u_idx, i_idx = row[0], row[1]
 
             # Reading/Writing variables
 
@@ -235,11 +237,12 @@ def predict_numba(X_train, y_train, X_test):
 
     start_time = time.perf_counter()
     res = predict_numba_inner(
-        train=np.c_[X_train_widx, y_train],
-        X_test_widx=X_test_widx,
-        X_test=X_test,
-        user_ids_uq=user_ids_uq,
-        item_ids_uq=item_ids_uq,
+        X_train_widx=X_train_widx.astype('int64'),
+        y_train=y_train.astype('float64'),
+        X_test_widx=X_test_widx.astype('int64'),
+        X_test=X_test.astype('int64'),
+        user_ids_uq=user_ids_uq.astype('int64'),
+        item_ids_uq=item_ids_uq.astype('int64'),
         n_factors=n_factors,
         n_epochs=n_epochs,
         learning_rate=learning_rate,
@@ -265,6 +268,7 @@ def predict_numba(X_train, y_train, X_test):
          'mean_rating': types.float64,
          'user_factors': types.Array(types.float64, 2, 'C'),
          'item_factors': types.Array(types.float64, 2, 'C'),
+         'item_imp_factors': types.Array(types.float64, 2, 'C'),
          'user_biases': types.Array(types.float64, 1, 'C'),
          'item_biases': types.Array(types.float64, 1, 'C'),
          'row': types.Array(types.int64, 1, 'C'),
@@ -276,9 +280,11 @@ def predict_numba(X_train, y_train, X_test):
          'b_i': types.float64,
          'p_u': types.Array(types.float64, 1, 'C'),
          'q_i': types.Array(types.float64, 1, 'C'),
+         'y_i': types.Array(types.float64, 2, 'C'),
          'r_ui_pred': types.float64,
          'e_ui': types.float64,
          'y_pred': types.Array(types.float64, 1, 'C'),
+         'q_i_term': types.Array(types.float64, 1, 'C'),
      },
      nopython=True, fastmath=True)
 def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_uq, n_factors, n_epochs,
@@ -320,6 +326,14 @@ def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_
 
             # Reading/Writing variables
 
+            if prev_i_idx != i_idx:
+                item_biases[prev_i_idx] = b_i
+                item_factors[prev_i_idx] = q_i
+                b_i = item_biases[i_idx]
+                q_i = item_factors[i_idx]
+
+                prev_i_idx = i_idx
+
             if prev_u_idx != u_idx:
                 user_biases[prev_u_idx] = b_u
                 user_factors[prev_u_idx] = p_u
@@ -328,7 +342,13 @@ def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_
 
                 for j in range(len(cur_user_items)):
                     cur_user_i_idx = cur_user_items[j]
-                    y_i[j] = y_i[j] + learning_rate * (errors[j] * cur_user_items_size_term * item_factors[cur_user_i_idx] - reg * y_i[j])
+                    q_i_term = item_factors[cur_user_i_idx]
+                    for k in range(len(cur_user_items)):
+                        e_ui = errors[k]
+                        for kk in range(n_factors):
+                            y_i_k_kk = y_i[k][kk]
+                            q_i_term_kk = q_i_term[kk]
+                            y_i[k][kk] = y_i_k_kk + learning_rate * (e_ui * q_i_term_kk * cur_user_items_size_term - reg * y_i_k_kk)
 
                 for j in range(len(cur_user_items)):
                     item_imp_factors[cur_user_items[j]] = y_i[j]
@@ -349,14 +369,6 @@ def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_
                 y_i_term = np.sum(y_i, axis=0)
                 errors = np.zeros(len(cur_user_items))
                 errors_idx = 0
-
-            if prev_i_idx != i_idx:
-                item_biases[prev_i_idx] = b_i
-                item_factors[prev_i_idx] = q_i
-                b_i = item_biases[i_idx]
-                q_i = item_factors[i_idx]
-
-                prev_i_idx = i_idx
 
             # Calculating the prediction and its error
             r_ui_pred = mean_rating + b_u + b_i + np.dot((p_u + cur_user_items_size_term * y_i_term), q_i)
@@ -506,9 +518,14 @@ if __name__ == '__main__':
     # print(f'Raw python: {mean_squared_error(y_test, y_test_pred_raw_python, squared=False):.4f} RMSE, '
     #       f'{time.perf_counter() - start_time:.6f} seconds')
 
+    # start_time = time.perf_counter()
+    # y_test_pred_numba = predict_numba(X_train, y_train, X_test)
+    # print(f'Numba SVD: {mean_squared_error(y_test, y_test_pred_numba, squared=False):.4f} RMSE, '
+    #       f'{time.perf_counter() - start_time:.6f} seconds')
+
     start_time = time.perf_counter()
-    y_test_pred_numba = predict_numba_svdpp(X_train, y_train, X_test)
-    print(f'Numba: {mean_squared_error(y_test, y_test_pred_numba, squared=False):.4f} RMSE, '
+    y_test_pred_numba_svdpp = predict_numba_svdpp(X_train, y_train, X_test)
+    print(f'Numba SVD++: {mean_squared_error(y_test, y_test_pred_numba_svdpp, squared=False):.4f} RMSE, '
           f'{time.perf_counter() - start_time:.6f} seconds')
 
     # with open(f'llvm{time.time_ns()}.txt', 'w+') as fout:
