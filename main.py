@@ -280,7 +280,7 @@ def predict_numba(X_train, y_train, X_test):
          'e_ui': types.float64,
          'y_pred': types.Array(types.float64, 1, 'C'),
      },
-     nopython=True, cache=True, fastmath=True)
+     nopython=True, fastmath=True)
 def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_uq, n_factors, n_epochs,
                               learning_rate, reg):
     mean_rating = np.mean(train[:, 2])
@@ -309,6 +309,10 @@ def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_
     for j in range(len(cur_user_items)):
         y_i[j] = item_imp_factors[cur_user_items[j]]
 
+    y_i_term = np.sum(y_i, axis=0)
+    errors = np.zeros(len(cur_user_items))
+    errors_idx = 0
+
     for epoch_number in range(n_epochs):
         for i in range(len(train)):
             row = train[i]
@@ -321,6 +325,10 @@ def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_
                 user_factors[prev_u_idx] = p_u
                 b_u = user_biases[u_idx]
                 p_u = user_factors[u_idx]
+
+                for j in range(len(cur_user_items)):
+                    cur_user_i_idx = cur_user_items[j]
+                    y_i[j] = y_i[j] + learning_rate * (errors[j] * cur_user_items_size_term * item_factors[cur_user_i_idx] - reg * y_i[j])
 
                 for j in range(len(cur_user_items)):
                     item_imp_factors[cur_user_items[j]] = y_i[j]
@@ -338,6 +346,10 @@ def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_
                 for j in range(len(cur_user_items)):
                     y_i[j] = item_imp_factors[cur_user_items[j]]
 
+                y_i_term = np.sum(y_i, axis=0)
+                errors = np.zeros(len(cur_user_items))
+                errors_idx = 0
+
             if prev_i_idx != i_idx:
                 item_biases[prev_i_idx] = b_i
                 item_factors[prev_i_idx] = q_i
@@ -347,26 +359,30 @@ def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_
                 prev_i_idx = i_idx
 
             # Calculating the prediction and its error
-            y_i_term = np.zeros_like(p_u)# np.sum(y_i, axis=0)
             r_ui_pred = mean_rating + b_u + b_i + np.dot((p_u + cur_user_items_size_term * y_i_term), q_i)
             e_ui = r_ui - r_ui_pred
+            errors[errors_idx] = e_ui
 
             # Updating biases
             b_u += learning_rate * (e_ui - reg * b_u)
             b_i += learning_rate * (e_ui - reg * b_i)
 
             # Updating factors
+            # for j in range(n_factors):
+            #     q_i_j = q_i[j]
+            #     for k in range(len(cur_user_items)):
+            #         y_i_k_j = y_i[k][j]
+            #         y_i[k][j] = y_i_k_j + learning_rate * (e_ui * cur_user_items_size_term * q_i_j - reg * y_i_k_j)
+
+            cur_user_items_count = len(cur_user_items)
             for j in range(n_factors):
                 p_u_j = p_u[j]
                 q_i_j = q_i[j]
                 y_i_term_j = y_i_term[j]
                 p_u[j] = p_u_j + learning_rate * (e_ui * q_i_j - reg * p_u_j)
                 q_i[j] = q_i_j + learning_rate * (e_ui * (p_u_j + cur_user_items_size_term * y_i_term_j) - reg * q_i_j)
-
-                y_i_update_term = learning_rate * (e_ui * cur_user_items_size_term * q_i_j - reg * q_i_j)
-                for k in range(len(cur_user_items)):
-                    y_i_k_j = y_i[k][j]
-                    y_i[k][j] = y_i_k_j + y_i_update_term
+                y_i_term[j] = y_i_term_j + learning_rate * \
+                              (cur_user_items_count * e_ui * cur_user_items_size_term * q_i_j - reg * y_i_term_j)
 
     # Biases and factors are not updated at the last iteration, so here the manual last update
     user_biases[prev_u_idx] = b_u
@@ -418,7 +434,7 @@ def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_
         b_i = item_biases[i_idx]
         q_i = item_factors[i_idx]
 
-        y_i_term = np.zeros_like(p_u)# np.sum(y_i, axis=0)
+        y_i_term = np.sum(y_i, axis=0)
         y_pred[i] = mean_rating + b_u + b_i + np.dot((p_u + cur_user_items_size_term * y_i_term), q_i)
 
     return y_pred
@@ -462,6 +478,7 @@ def predict_numba_svdpp(X_train, y_train, X_test):
 
 if __name__ == '__main__':
     data = as_numpy(MOVIELENS_100K)
+    # data = data[:30000, :]
     X, y = data[:, 0:2], data[:, 2]
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
@@ -494,5 +511,6 @@ if __name__ == '__main__':
     print(f'Numba: {mean_squared_error(y_test, y_test_pred_numba, squared=False):.4f} RMSE, '
           f'{time.perf_counter() - start_time:.6f} seconds')
 
-    # for v, k in predict_numba_inner.inspect_llvm().items():
-    #     print(v, k)
+    # with open(f'llvm{time.time_ns()}.txt', 'w+') as fout:
+    #     for v, k in predict_numba_svdpp_inner.inspect_llvm().items():
+    #         print(v, k, file=fout)
