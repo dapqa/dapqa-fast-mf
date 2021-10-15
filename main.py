@@ -255,6 +255,7 @@ def predict_numba(X_train, y_train, X_test):
 
 @jit(types.Array(types.float64, 1, 'C')
          (types.Array(types.int64, 2, 'C'),
+          types.Array(types.float64, 1, 'C'),
           types.Array(types.int64, 2, 'C'),
           types.Array(types.int64, 2, 'C'),
           types.Array(types.int64, 1, 'C'),
@@ -268,28 +269,35 @@ def predict_numba(X_train, y_train, X_test):
          'mean_rating': types.float64,
          'user_factors': types.Array(types.float64, 2, 'C'),
          'item_factors': types.Array(types.float64, 2, 'C'),
-         'item_imp_factors': types.Array(types.float64, 2, 'C'),
          'user_biases': types.Array(types.float64, 1, 'C'),
          'item_biases': types.Array(types.float64, 1, 'C'),
-         'row': types.Array(types.int64, 1, 'C'),
-         'original_row': types.Array(types.int64, 1, 'C'),
-         'r_ui': types.int64,
-         'u_idx': types.int64,
-         'i_idx': types.int64,
+         'items_of_user_length': types.Array(types.int64, 1, 'C'),
+         'item_imp_factors': types.Array(types.float64, 2, 'C'),
+         'item_imp_factors_sum': types.Array(types.float64, 2, 'C'),
+         'items_of_user_norm': types.Array(types.float64, 1, 'C'),
          'b_u': types.float64,
          'b_i': types.float64,
          'p_u': types.Array(types.float64, 1, 'C'),
          'q_i': types.Array(types.float64, 1, 'C'),
-         'y_i': types.Array(types.float64, 2, 'C'),
+         'y_i_sum': types.Array(types.float64, 1, 'C'),
+         'q_i_accum': types.Array(types.float64, 1, 'C'),
+         'q_i_accum_scale': types.int64,
+         'prev_u_idx': types.int64,
+         'prev_i_idx': types.int64,
+         'u_start_i': types.int64,
+         'row': types.Array(types.int64, 1, 'C'),
+         'u_idx': types.int64,
+         'i_idx': types.int64,
+         'r_ui': types.float64,
+         'original_row': types.Array(types.int64, 1, 'C'),
          'r_ui_pred': types.float64,
          'e_ui': types.float64,
          'y_pred': types.Array(types.float64, 1, 'C'),
-         'q_i_term': types.Array(types.float64, 1, 'C'),
      },
-     nopython=True, fastmath=True)
-def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_uq, n_factors, n_epochs,
+     nopython=True, fastmath=True, cache=True)
+def predict_numba_svdpp_inner(X_train_widx, y_train, X_test, X_test_widx, user_ids_uq, item_ids_uq, n_factors, n_epochs,
                               learning_rate, reg):
-    mean_rating = np.mean(train[:, 2])
+    mean_rating = np.mean(y_train)
 
     user_factors = np.random.normal(size=(len(user_ids_uq), n_factors), loc=0, scale=.1)
     item_factors = np.random.normal(size=(len(item_ids_uq), n_factors), loc=0, scale=.1)
@@ -297,17 +305,15 @@ def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_
     item_biases = np.zeros(len(item_ids_uq))
 
     # First pass: calc how much items are rated by a user
-    items_of_user_length = np.zeros(len(user_ids_uq))
+    items_of_user_length = np.zeros(len(user_ids_uq), dtype='int64')
     item_imp_factors = np.random.normal(size=(len(item_ids_uq), n_factors), loc=0, scale=.1)
     item_imp_factors_sum = np.zeros_like(user_factors)
-    for i in range(len(train)):
-        u_idx, i_idx = train[i][0], train[i][1]
+    for i in range(len(X_train_widx)):
+        u_idx, i_idx = X_train_widx[i][0], X_train_widx[i][1]
         items_of_user_length[u_idx] += 1
         item_imp_factors_sum[u_idx] += item_imp_factors[i_idx]
 
     items_of_user_norm = items_of_user_length ** -0.5
-    median_items_of_user_length = int(np.median(items_of_user_length))
-    # print(median_items_of_user_length)
 
     b_u = user_biases[0]
     b_i = item_biases[0]
@@ -321,9 +327,10 @@ def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_
     u_start_i = 0
 
     for epoch_number in range(n_epochs):
-        for i in range(len(train)):
-            row = train[i]
-            u_idx, i_idx, r_ui = row[0], row[1], row[2]
+        for i in range(len(X_train_widx)):
+            r_ui = y_train[i]
+            row = X_train_widx[i]
+            u_idx, i_idx = row[0], row[1]
 
             # Reading/Writing variables
 
@@ -340,14 +347,24 @@ def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_
                 cur_user_i_idx_start = u_start_i
                 cur_user_i_idx_stop = u_start_i + items_of_user_length[prev_u_idx]
 
-                q_i_accum /= q_i_accum_scale
-                y_i_sum = np.zeros_like(p_u)
-                for j in range(cur_user_i_idx_start, cur_user_i_idx_stop):
-                    cur_user_i_idx = train[j][1]
-                    item_imp_factors[cur_user_i_idx] += learning_rate * (q_i_accum - reg * item_imp_factors[cur_user_i_idx])
-                    y_i_sum += item_imp_factors[cur_user_i_idx]
+                for k in range(n_factors):
+                    q_i_accum_k = q_i_accum[k]
+                    q_i_accum[k] = q_i_accum_k / q_i_accum_scale
 
-                q_i_accum = np.zeros_like(q_i)
+                y_i_sum.fill(0)
+                for j in range(cur_user_i_idx_start, cur_user_i_idx_stop):
+                    cur_user_i_idx = X_train_widx[j][1]
+
+                    for k in range(n_factors):
+                        y_i_k = item_imp_factors[cur_user_i_idx][k]
+                        y_i_sum_k = y_i_sum[k]
+                        q_i_accum_k = q_i_accum[k]
+
+                        y_i_k = y_i_k + learning_rate * (q_i_accum_k - reg * y_i_k)
+                        y_i_sum[k] = y_i_sum_k + y_i_k
+                        item_imp_factors[cur_user_i_idx][k] = y_i_k
+
+                q_i_accum.fill(0)
                 q_i_accum_scale = 0
 
                 # ---
@@ -361,23 +378,14 @@ def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_
 
                 prev_u_idx = u_idx
                 u_start_i = i
-            elif (i - u_start_i + 1) % (median_items_of_user_length / median_items_of_user_length) == 0 and q_i_accum_scale > 0:
-                cur_user_i_idx_start = u_start_i
-                cur_user_i_idx_stop = u_start_i + items_of_user_length[prev_u_idx]
-
-                q_i_accum /= q_i_accum_scale
-                y_i_sum = np.zeros_like(p_u)
-                for j in range(cur_user_i_idx_start, cur_user_i_idx_stop):
-                    cur_user_i_idx = train[j][1]
-                    item_imp_factors[cur_user_i_idx] += learning_rate * (
-                                q_i_accum - reg * item_imp_factors[cur_user_i_idx])
-                    y_i_sum += item_imp_factors[cur_user_i_idx]
-
-                q_i_accum = np.zeros_like(q_i)
-                q_i_accum_scale = 0
 
             # Calculating the prediction and its error
-            r_ui_pred = mean_rating + b_u + b_i + np.dot((p_u + items_of_user_norm[u_idx] * y_i_sum), q_i)
+
+            norm = items_of_user_norm[u_idx]
+            r_ui_pred = mean_rating + b_u + b_i
+            for j in range(n_factors):
+                r_ui_pred = r_ui_pred + (p_u[j] + norm * y_i_sum[j]) * q_i[j]
+
             e_ui = r_ui - r_ui_pred
 
             # Updating biases
@@ -388,18 +396,46 @@ def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_
                 p_u_j = p_u[j]
                 q_i_j = q_i[j]
                 y_i_sum_j = y_i_sum[j]
-                p_u[j] = p_u_j + learning_rate * (e_ui * q_i_j - reg * p_u_j)
-                q_i[j] = q_i_j + learning_rate * (e_ui * (p_u_j + items_of_user_norm[u_idx] * y_i_sum_j) - reg * q_i_j)
+                q_i_accum_j = q_i_accum[j]
 
-            # Updating q_i_accum
-            q_i_accum += e_ui * items_of_user_norm[u_idx] * q_i
+                p_u_j = p_u_j + learning_rate * (e_ui * q_i_j - reg * p_u_j)
+                q_i_j = q_i_j + learning_rate * (e_ui * (p_u_j + norm * y_i_sum_j) - reg * q_i_j)
+                q_i_accum_j = q_i_accum_j + e_ui * norm * q_i_j
+
+                p_u[j] = p_u_j
+                q_i[j] = q_i_j
+                q_i_accum[j] = q_i_accum_j
+
             q_i_accum_scale += 1
 
-    # Biases and factors are not updated at the last iteration, so here the manual last update TODO imp_factors
+    # Biases and factors are not updated at the last iteration, so here the manual last update
     user_biases[prev_u_idx] = b_u
     user_factors[prev_u_idx] = p_u
     item_biases[prev_i_idx] = b_i
     item_factors[prev_i_idx] = q_i
+
+    # Updating implicit item factors
+    cur_user_i_idx_start = u_start_i
+    cur_user_i_idx_stop = u_start_i + items_of_user_length[prev_u_idx]
+
+    for k in range(n_factors):
+        q_i_accum_k = q_i_accum[k]
+        q_i_accum[k] = q_i_accum_k / q_i_accum_scale
+
+    y_i_sum.fill(0)
+    for j in range(cur_user_i_idx_start, cur_user_i_idx_stop):
+        cur_user_i_idx = X_train_widx[j][1]
+
+        for k in range(n_factors):
+            y_i_k = item_imp_factors[cur_user_i_idx][k]
+            y_i_sum_k = y_i_sum[k]
+            q_i_accum_k = q_i_accum[k]
+
+            y_i_k = y_i_k + learning_rate * (q_i_accum_k - reg * y_i_k)
+            y_i_sum[k] = y_i_sum_k + y_i_k
+            item_imp_factors[cur_user_i_idx][k] = y_i_k
+
+    item_imp_factors_sum[prev_u_idx] = y_i_sum
 
     # Prediction part
 
@@ -408,6 +444,7 @@ def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_
     prev_u_idx = 0
     b_u = user_biases[0]
     p_u = user_factors[0]
+    y_i_sum = item_imp_factors_sum[0]
 
     for i in range(len(X_test_widx)):
         row = X_test_widx[i]
@@ -421,18 +458,24 @@ def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_
         if prev_u_idx != u_idx:
             b_u = user_biases[u_idx]
             p_u = user_factors[u_idx]
+            y_i_sum = item_imp_factors_sum[u_idx]
 
         b_i = item_biases[i_idx]
         q_i = item_factors[i_idx]
 
-        y_pred[i] = mean_rating + b_u + b_i + np.dot((p_u + items_of_user_norm[u_idx] * item_imp_factors_sum[u_idx]), q_i)
+        norm = items_of_user_norm[u_idx]
+        r_ui_pred = mean_rating + b_u + b_i
+        for j in range(n_factors):
+            r_ui_pred = r_ui_pred + (p_u[j] + norm * y_i_sum[j]) * q_i[j]
+
+        y_pred[i] = r_ui_pred
 
     return y_pred
 
 
 def predict_numba_svdpp(X_train, y_train, X_test):
     n_factors = 100
-    reg = 0.02
+    reg = 0.054
     learning_rate = 0.005
     n_epochs = 20
 
@@ -451,11 +494,12 @@ def predict_numba_svdpp(X_train, y_train, X_test):
 
     start_time = time.perf_counter()
     res = predict_numba_svdpp_inner(
-        train=np.c_[X_train_widx, y_train],
-        X_test_widx=X_test_widx,
-        X_test=X_test,
-        user_ids_uq=user_ids_uq,
-        item_ids_uq=item_ids_uq,
+        X_train_widx=X_train_widx.astype('int64'),
+        y_train=y_train.astype('float64'),
+        X_test_widx=X_test_widx.astype('int64'),
+        X_test=X_test.astype('int64'),
+        user_ids_uq=user_ids_uq.astype('int64'),
+        item_ids_uq=item_ids_uq.astype('int64'),
         n_factors=n_factors,
         n_epochs=n_epochs,
         learning_rate=learning_rate,
@@ -467,19 +511,19 @@ def predict_numba_svdpp(X_train, y_train, X_test):
 
 
 if __name__ == '__main__':
-    data = as_numpy(MOVIELENS_1M)
+    data = as_numpy(MOVIELENS_10M)
     # data = data[:30000, :]
-    # X, y = data[:, 0:2], data[:, 2]
-    #
-    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-    # sort_perm_train = np.argsort(X_train[:, 0])
-    # sort_perm_test = np.argsort(X_test[:, 0])
-    #
-    # X_train = X_train[sort_perm_train, :]
-    # y_train = y_train[sort_perm_train]
-    #
-    # X_test = X_test[sort_perm_test, :]
-    # y_test = y_test[sort_perm_test]
+    X, y = data[:, 0:2], data[:, 2]
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    sort_perm_train = np.argsort(X_train[:, 0])
+    sort_perm_test = np.argsort(X_test[:, 0])
+
+    X_train = X_train[sort_perm_train, :]
+    y_train = y_train[sort_perm_train]
+
+    X_test = X_test[sort_perm_test, :]
+    y_test = y_test[sort_perm_test]
 
     # start_time = time.perf_counter()
     # y_test_pred_naive = predict_naive(X_train, y_train, X_test)
@@ -496,56 +540,56 @@ if __name__ == '__main__':
     # print(f'Raw python: {mean_squared_error(y_test, y_test_pred_raw_python, squared=False):.4f} RMSE, '
     #       f'{time.perf_counter() - start_time:.6f} seconds')
 
-    # start_time = time.perf_counter()
-    # y_test_pred_numba = predict_numba(X_train, y_train, X_test)
-    # print(f'Numba SVD: {mean_squared_error(y_test, y_test_pred_numba, squared=False):.4f} RMSE, '
-    #       f'{time.perf_counter() - start_time:.6f} seconds')
-    #
-    # start_time = time.perf_counter()
-    # y_test_pred_numba_svdpp = predict_numba_svdpp(X_train, y_train, X_test)
-    # print(f'Numba SVD++: {mean_squared_error(y_test, y_test_pred_numba_svdpp, squared=False):.4f} RMSE, '
-    #       f'{time.perf_counter() - start_time:.6f} seconds')
+    start_time = time.perf_counter()
+    y_test_pred_numba = predict_numba(X_train, y_train, X_test)
+    print(f'Numba SVD: {mean_squared_error(y_test, y_test_pred_numba, squared=False):.4f} RMSE, '
+          f'{time.perf_counter() - start_time:.6f} seconds')
+
+    start_time = time.perf_counter()
+    y_test_pred_numba_svdpp = predict_numba_svdpp(X_train, y_train, X_test)
+    print(f'Numba SVD++: {mean_squared_error(y_test, y_test_pred_numba_svdpp, squared=False):.4f} RMSE, '
+          f'{time.perf_counter() - start_time:.6f} seconds')
 
     # with open(f'llvm{time.time_ns()}.txt', 'w+') as fout:
     #     for v, k in predict_numba_svdpp_inner.inspect_llvm().items():
     #         print(v, k, file=fout)
 
-    import scipy.stats
-    def mean_confidence_interval(data, confidence=0.95):
-        """Computes data mean and bounds of confidence interval.
-        This function is taken from https://stackoverflow.com/a/15034143 and authored by https://stackoverflow.com/users/2457899/gcamargo.
+    # import scipy.stats
+    # def mean_confidence_interval(data, confidence=0.95):
+    #     """Computes data mean and bounds of confidence interval.
+    #     This function is taken from https://stackoverflow.com/a/15034143 and authored by https://stackoverflow.com/users/2457899/gcamargo.
+    #
+    #     :param data: Array-like numeric data
+    #     :param confidence: Confidence value
+    #     :return: Mean, lower confidence bound, and upper confidence bound
+    #     """
+    #     a = 1.0 * np.array(data)
+    #     n = len(a)
+    #     m, se = np.mean(a), scipy.stats.sem(a)
+    #     h = se * scipy.stats.t.ppf((1 + confidence) / 2., n - 1)
+    #     return m, h
+    #
+    # TEST_NUMBER = 1
+    # tests_rmse = np.zeros(TEST_NUMBER)
+    # for i in range(TEST_NUMBER):
+    #     print(f'Iteration #{i}')
+    #     X, y = data[:, 0:2], data[:, 2]
+    #
+    #     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    #     sort_perm_train = np.argsort(X_train[:, 0])
+    #     sort_perm_test = np.argsort(X_test[:, 0])
+    #
+    #     X_train = X_train[sort_perm_train, :]
+    #     y_train = y_train[sort_perm_train]
+    #
+    #     X_test = X_test[sort_perm_test, :]
+    #     y_test = y_test[sort_perm_test]
+    #
+    #     y_test_pred_numba_svdpp = predict_numba_svdpp(X_train, y_train, X_test)
+    #     tests_rmse[i] = mean_squared_error(y_test, y_test_pred_numba_svdpp, squared=False)
 
-        :param data: Array-like numeric data
-        :param confidence: Confidence value
-        :return: Mean, lower confidence bound, and upper confidence bound
-        """
-        a = 1.0 * np.array(data)
-        n = len(a)
-        m, se = np.mean(a), scipy.stats.sem(a)
-        h = se * scipy.stats.t.ppf((1 + confidence) / 2., n - 1)
-        return m, h
-
-    TEST_NUMBER = 10
-    tests_rmse = np.zeros(TEST_NUMBER)
-    for i in range(TEST_NUMBER):
-        print(f'Iteration #{i}')
-        X, y = data[:, 0:2], data[:, 2]
-
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        sort_perm_train = np.argsort(X_train[:, 0])
-        sort_perm_test = np.argsort(X_test[:, 0])
-
-        X_train = X_train[sort_perm_train, :]
-        y_train = y_train[sort_perm_train]
-
-        X_test = X_test[sort_perm_test, :]
-        y_test = y_test[sort_perm_test]
-
-        y_test_pred_numba_svdpp = predict_numba_svdpp(X_train, y_train, X_test)
-        tests_rmse[i] = mean_squared_error(y_test, y_test_pred_numba_svdpp, squared=False)
-
-    m, h = mean_confidence_interval(tests_rmse)
-    print(f'RMSE: {m:.4f} +- {h:.4f}')
+    # m, h = mean_confidence_interval(tests_rmse)
+    # print(f'RMSE: {m:.4f} +- {h:.4f}')
 
     # SVD++ with occasional updates mean/10, 10 tests ML 100k: 0.9328 +- 0.0031
 
