@@ -361,7 +361,7 @@ def predict_numba_svdpp_inner(train, X_test, X_test_widx, user_ids_uq, item_ids_
 
                 prev_u_idx = u_idx
                 u_start_i = i
-            elif (i - u_start_i + 1) % (median_items_of_user_length / 3) == 0 and q_i_accum_scale > 0:
+            elif (i - u_start_i + 1) % (median_items_of_user_length / median_items_of_user_length) == 0 and q_i_accum_scale > 0:
                 cur_user_i_idx_start = u_start_i
                 cur_user_i_idx_stop = u_start_i + items_of_user_length[prev_u_idx]
 
@@ -467,7 +467,7 @@ def predict_numba_svdpp(X_train, y_train, X_test):
 
 
 if __name__ == '__main__':
-    data = as_numpy(MOVIELENS_100K)
+    data = as_numpy(MOVIELENS_1M)
     # data = data[:30000, :]
     # X, y = data[:, 0:2], data[:, 2]
     #
@@ -525,13 +525,13 @@ if __name__ == '__main__':
         h = se * scipy.stats.t.ppf((1 + confidence) / 2., n - 1)
         return m, h
 
-    TEST_NUMBER = 100
+    TEST_NUMBER = 10
     tests_rmse = np.zeros(TEST_NUMBER)
     for i in range(TEST_NUMBER):
         print(f'Iteration #{i}')
         X, y = data[:, 0:2], data[:, 2]
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         sort_perm_train = np.argsort(X_train[:, 0])
         sort_perm_test = np.argsort(X_test[:, 0])
 
@@ -548,8 +548,19 @@ if __name__ == '__main__':
     print(f'RMSE: {m:.4f} +- {h:.4f}')
 
     # SVD++ with occasional updates mean/10, 10 tests ML 100k: 0.9328 +- 0.0031
+
     # SVD++ with occasional updates mean/10, 100 tests ML 100k: 0.9320 +- 0.0009
     # SVD++ with occasional updates mean/3, 100 tests ML 100k: 0.9311 +- 0.0010
     # SVD++ without occasional updates, 100 tests ML 100k: 0.9317 +- 0.0009
     # SVD, 100 tests ML 100k: 0.9383 +- 0.0010
+
+    # SVD++ with occasional updates mean/10, 10 tests ML 1M: 0.8683 +- 0.0011
+    # SVD++ with occasional updates mean/3, 10 tests ML 1M: 0.8693 +- 0.0010
+    # SVD++ without occasional updates, 10 tests ML 1M: 0.8692 +- 0.0008
+    # SVD, 10 tests ML 1M: 0.8748 +- 0.0013
+
+    # SVD++ with occasional updates mean/10, 10 tests ML 1M random state 42: 0.8710 +- 0.0005
+    # SVD++ with occasional updates mean/3, 10 tests ML 1M random state 42: 0.8710 +- 0.0003
+    # SVD++ without occasional updates, 10 tests ML 1M random state 42: 0.8712 +- 0.0005
+    # SVD, 10 tests 10 tests ML 1M random state 42: 0.8773 +- 0.0005
 
