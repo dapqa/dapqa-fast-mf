@@ -1,0 +1,6 @@
+numpy==1.20.3
+scikit-learn==0.24.1
+scikit-surprise==1.1.1
+numba==0.53.1
+icc_rt
+git+https://github.com/dapqa/dapqa-recsys-utils.git

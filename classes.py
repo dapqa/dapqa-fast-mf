@@ -1,4 +1,4 @@
-from util.datasets import MOVIELENS_100K, as_numpy, MOVIELENS_1M, MOVIELENS_10M
+from drsu.datasets import MOVIELENS_100K, as_numpy, MOVIELENS_1M, MOVIELENS_10M
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 
@@ -7,7 +7,6 @@ from numba import jit, objmode, types
 from numpy.random import default_rng
 
 import numpy as np
-import pandas as pd
 
 import time
 
@@ -582,7 +581,7 @@ class SVDPlusPlus(object):
 
 
 if __name__ == '__main__':
-    data = as_numpy(MOVIELENS_1M)
+    data = as_numpy(MOVIELENS_100K)
     X, y = data[:, 0:2], data[:, 2]
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
