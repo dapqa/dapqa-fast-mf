@@ -2,7 +2,7 @@ from drsu.datasets import MOVIELENS_100K, as_numpy, MOVIELENS_1M, MOVIELENS_10M
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 
-from numba import jit, objmode, types
+from numba import jit, types
 
 from numpy.random import default_rng
 

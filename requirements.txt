@@ -3,4 +3,4 @@ scikit-learn==0.24.1
 scikit-surprise==1.1.1
 numba==0.53.1
 icc_rt
-git+https://github.com/dapqa/dapqa-recsys-utils.git@0.0.1
+git+https://github.com/dapqa/dapqa-recsys-utils.git@v0.0.3
