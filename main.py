@@ -1,25 +1,22 @@
 import time
 
-import numpy as np
 from drsu.datasets import MOVIELENS_100K, as_numpy
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 
 from dfmf.model import SVDpp
+from dfmf.util import sort_by_user
 
 if __name__ == '__main__':
     data = as_numpy(MOVIELENS_100K)
     X, y = data[:, 0:2], data[:, 2]
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    sort_perm_train = np.argsort(X_train[:, 0])
-    sort_perm_test = np.argsort(X_test[:, 0])
-
-    X_train = X_train[sort_perm_train, :]
-    y_train = y_train[sort_perm_train]
-
-    X_test = X_test[sort_perm_test, :]
-    y_test = y_test[sort_perm_test]
+    X_train, X_test, y_train, y_test = sort_by_user(
+        *train_test_split(
+            X, y,
+            test_size=0.2, random_state=42
+        )
+    )
 
     # ---
     start_time = time.perf_counter()
