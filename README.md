@@ -6,12 +6,14 @@ Based on [Numba](https://numba.pydata.org/).
 ## Benchmarking
 
 To run benchmarks, execute
-
 ```shell
 python -m pytest benchmark --benchmark-autosave
 ```
-
-in a virtual environment console in the root directory.
+in a virtual environment console in the root directory.  
+As in raw pytest, keywords can be used to filter benchmarks. For example, only ml100k benchmarks can be run using
+```shell
+python -m pytest benchmark --benchmark-autosave -k ml100k
+```
 
 To view or compare existing benchmark results, run 
 
