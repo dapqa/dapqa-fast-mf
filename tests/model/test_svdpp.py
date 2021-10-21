@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from sklearn.metrics import mean_squared_error
 
 from dfmf.model import SVDpp
@@ -32,6 +33,48 @@ def test_svdpp_properties(ml100k_split):
     assert model.user_biases.shape == (len(model.user_ids_uq),)
     assert model.item_biases.shape == (len(model.item_ids_uq),)
     assert model.mean_rating > 0
+    
+    
+def test_svd_invalid_fit_input():
+    model = SVDpp()
+
+    with pytest.raises(ValueError):
+        model.fit(np.array([1, 2, 3]), np.array([1, 2, 3]))
+
+    with pytest.raises(ValueError):
+        model.fit(
+            np.array([
+                [1, 2],
+                [2, 3]
+            ]),
+            np.array([
+                [1, 2],
+                [2, 3]
+            ])
+        )
+
+    with pytest.raises(ValueError):
+        model.fit(
+            np.array([
+                [1, 2],
+                [2, 3]
+            ]),
+            np.array([1, 2, 3])
+        )
+
+
+def test_predict_invalid_input():
+    model = SVDpp()
+    model.fit(
+        np.array([
+            [1, 2],
+            [2, 3]
+        ]),
+        np.array([5, 5])
+    )
+
+    with pytest.raises(ValueError):
+        model.predict(np.array([1, 2]))
 
 
 def test_sdvpp_jit():

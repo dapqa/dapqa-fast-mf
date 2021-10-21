@@ -2,6 +2,7 @@ import numpy as np
 from numba import jit, types
 
 from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn.utils import check_X_y, check_array
 
 
 @jit(
@@ -187,6 +188,8 @@ class SVD(BaseEstimator, RegressorMixin):
         self.mean_rating = 0
 
     def fit(self, X, y):
+        X, y = check_X_y(X, y)
+
         if self.user_ids_uq is None:
             self.user_ids_uq = np.unique(X[:, 0])
 
@@ -210,6 +213,8 @@ class SVD(BaseEstimator, RegressorMixin):
         )
 
     def predict(self, X):
+        X = check_array(X)
+
         X_widx = np.c_[
             np.searchsorted(self.user_ids_uq, X[:, 0]).T,
             np.searchsorted(self.item_ids_uq, X[:, 1]).T
