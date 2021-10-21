@@ -1,4 +1,5 @@
 import pytest
+import tempfile
 from drsu.datasets import as_numpy, MOVIELENS_100K
 from sklearn.model_selection import train_test_split
 
@@ -17,3 +18,12 @@ def ml100k_split():
         )
     )
     return X_train, X_test, y_train, y_test
+
+
+@pytest.fixture(scope='session')
+def temp_model_dump_directory():
+    tempdir = tempfile.TemporaryDirectory()
+
+    yield tempdir.name
+
+    tempdir.cleanup()

@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 from sklearn.metrics import mean_squared_error
@@ -84,5 +86,31 @@ def test_svd_jit():
 
     assert isinstance(_predict_svd, CPUDispatcher)
     assert len(_predict_svd.overloads) > 0
+
+
+def test_svd_save_load(ml100k_split, temp_model_dump_directory):
+    X_train, X_test, y_train, y_test = ml100k_split
+
+    model = SVD(n_factors=10)
+    model.fit(X_train, y_train)
+
+    from joblib import dump, load
+    dump_file_name = os.path.join(temp_model_dump_directory, 'test_svd_save_load.joblib')
+    dump(model, dump_file_name)
+    model_from_dump = load(dump_file_name)
+
+    assert isinstance(model_from_dump, SVD)
+    assert model.n_factors == model_from_dump.n_factors
+    assert (model.user_ids_uq == model_from_dump.user_ids_uq).all()
+    assert (model.item_ids_uq == model_from_dump.item_ids_uq).all()
+    assert (model.user_factors == model_from_dump.user_factors).all()
+    assert (model.item_factors == model_from_dump.item_factors).all()
+    assert (model.user_biases == model_from_dump.user_biases).all()
+    assert (model.item_biases == model_from_dump.item_biases).all()
+    assert model.mean_rating == model_from_dump.mean_rating
+
+    y_pred = model.predict(X_test)
+    y_pred_by_model_from_dump = model_from_dump.predict(X_test)
+    assert (y_pred == y_pred_by_model_from_dump).all()
 
 
