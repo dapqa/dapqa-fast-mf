@@ -164,8 +164,6 @@ def _predict_svd(
 
 class SVD(BaseEstimator, RegressorMixin):
     def __init__(self,
-                 user_ids_uq=None,
-                 item_ids_uq=None,
                  n_factors=100,
                  reg=0.02,
                  learning_rate=0.005,
@@ -173,8 +171,10 @@ class SVD(BaseEstimator, RegressorMixin):
                  ) -> None:
         super().__init__()
 
-        self.user_ids_uq = user_ids_uq
-        self.item_ids_uq = item_ids_uq
+        # TODO Predefined ids may be usable
+        self.user_ids_uq = None
+        self.item_ids_uq = None
+
         self.n_factors = n_factors
         self.reg = reg
         self.learning_rate = learning_rate
