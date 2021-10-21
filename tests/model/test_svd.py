@@ -61,7 +61,7 @@ def test_svd_invalid_fit_input():
         )
 
 
-def test_predict_invalid_input():
+def test_svd_invalid_predict_input():
     model = SVD()
     model.fit(
         np.array([

@@ -35,7 +35,7 @@ def test_svdpp_properties(ml100k_split):
     assert model.mean_rating > 0
     
     
-def test_svd_invalid_fit_input():
+def test_svdpp_invalid_fit_input():
     model = SVDpp()
 
     with pytest.raises(ValueError):
@@ -63,7 +63,7 @@ def test_svd_invalid_fit_input():
         )
 
 
-def test_predict_invalid_input():
+def test_svdpp_invalid_predict_input():
     model = SVDpp()
     model.fit(
         np.array([
