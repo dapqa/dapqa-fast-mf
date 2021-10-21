@@ -92,7 +92,11 @@ def _fit_svd(
                 prev_i_idx = i_idx
 
             # Calculating the prediction and its error
-            r_ui_pred = mean_rating + b_u + b_i + np.dot(p_u, q_i)
+
+            r_ui_pred = mean_rating + b_u + b_i
+            for j in range(n_factors):
+                r_ui_pred = r_ui_pred + p_u[j] * q_i[j]
+
             e_ui = r_ui - r_ui_pred
 
             # Updating biases
@@ -143,6 +147,7 @@ def _predict_svd(
         mean_rating
 ):
     y_pred = np.full((len(X_test_widx)), mean_rating)
+    n_factors = len(user_factors[0])
 
     for i in range(len(X_test_widx)):
         row = X_test_widx[i]
@@ -158,7 +163,11 @@ def _predict_svd(
         p_u = user_factors[u_idx, :]
         q_i = item_factors[i_idx, :]
 
-        y_pred[i] = mean_rating + b_u + b_i + np.dot(p_u, q_i)
+        r_ui_pred = mean_rating + b_u + b_i
+        for j in range(n_factors):
+            r_ui_pred = r_ui_pred + p_u[j] * q_i[j]
+
+        y_pred[i] = r_ui_pred
 
     return y_pred
 
