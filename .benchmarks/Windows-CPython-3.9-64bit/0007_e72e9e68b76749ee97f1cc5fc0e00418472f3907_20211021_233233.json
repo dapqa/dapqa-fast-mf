@@ -1,0 +1,651 @@
+{
+    "machine_info": {
+        "node": "DESKTOP-QH39HC0",
+        "processor": "Intel64 Family 6 Model 60 Stepping 3, GenuineIntel",
+        "machine": "AMD64",
+        "python_compiler": "MSC v.1929 64 bit (AMD64)",
+        "python_implementation": "CPython",
+        "python_implementation_version": "3.9.7",
+        "python_version": "3.9.7",
+        "python_build": [
+            "tags/v3.9.7:1016ef3",
+            "Aug 30 2021 20:19:38"
+        ],
+        "release": "10",
+        "system": "Windows",
+        "cpu": {
+            "python_version": "3.9.7.final.0 (64 bit)",
+            "cpuinfo_version": [
+                8,
+                0,
+                0
+            ],
+            "cpuinfo_version_string": "8.0.0",
+            "arch": "X86_64",
+            "bits": 64,
+            "count": 4,
+            "arch_string_raw": "AMD64",
+            "vendor_id_raw": "GenuineIntel",
+            "brand_raw": "Intel(R) Core(TM) i5-4690 CPU @ 3.50GHz",
+            "hz_advertised_friendly": "3.5000 GHz",
+            "hz_actual_friendly": "3.5010 GHz",
+            "hz_advertised": [
+                3500000000,
+                0
+            ],
+            "hz_actual": [
+                3501000000,
+                0
+            ],
+            "l2_cache_size": 1048576,
+            "stepping": 3,
+            "model": 60,
+            "family": 6,
+            "l3_cache_size": 6291456,
+            "flags": [
+                "3dnow",
+                "abm",
+                "acpi",
+                "aes",
+                "apic",
+                "avx",
+                "avx2",
+                "bmi1",
+                "bmi2",
+                "clflush",
+                "cmov",
+                "cx16",
+                "cx8",
+                "de",
+                "dts",
+                "erms",
+                "est",
+                "f16c",
+                "fma",
+                "fpu",
+                "fxsr",
+                "ht",
+                "hypervisor",
+                "ia64",
+                "invpcid",
+                "lahf_lm",
+                "mca",
+                "mce",
+                "mmx",
+                "movbe",
+                "msr",
+                "mtrr",
+                "osxsave",
+                "pae",
+                "pat",
+                "pbe",
+                "pcid",
+                "pclmulqdq",
+                "pdcm",
+                "pge",
+                "pni",
+                "popcnt",
+                "pse",
+                "pse36",
+                "rdrnd",
+                "sep",
+                "serial",
+                "smep",
+                "ss",
+                "sse",
+                "sse2",
+                "sse4_1",
+                "sse4_2",
+                "ssse3",
+                "tm",
+                "tm2",
+                "tsc",
+                "vme",
+                "xsave",
+                "xtpr"
+            ],
+            "l2_cache_line_size": 256,
+            "l2_cache_associativity": 6
+        }
+    },
+    "commit_info": {
+        "id": "e72e9e68b76749ee97f1cc5fc0e00418472f3907",
+        "time": "2021-10-22T02:31:58+03:00",
+        "author_time": "2021-10-22T02:31:58+03:00",
+        "dirty": false,
+        "project": "fast-mf",
+        "branch": "master"
+    },
+    "benchmarks": [
+        {
+            "group": "svd-ml100k",
+            "name": "test_svd_ml100k[10]",
+            "fullname": "benchmark/test_fit_predict.py::test_svd_ml100k[10]",
+            "params": {
+                "n_factors": 10
+            },
+            "param": "10",
+            "extra_info": {
+                "rmse_stats": {
+                    "min": 0.9262358757727893,
+                    "max": 0.9376443721018981,
+                    "mean": 0.9334541514520367,
+                    "stddev": 0.004537377280347729
+                }
+            },
+            "options": {
+                "disable_gc": true,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.21035650000000006,
+                "max": 0.2912011999999997,
+                "mean": 0.22706916000000002,
+                "stddev": 0.03585627417388745,
+                "rounds": 5,
+                "median": 0.2112662000000003,
+                "iqr": 0.021231549999999988,
+                "q1": 0.21052464999999998,
+                "q3": 0.23175619999999997,
+                "iqr_outliers": 1,
+                "stddev_outliers": 1,
+                "outliers": "1;1",
+                "ld15iqr": 0.21035650000000006,
+                "hd15iqr": 0.2912011999999997,
+                "ops": 4.403944595558463,
+                "total": 1.1353458,
+                "iterations": 1
+            }
+        },
+        {
+            "group": "svd-ml100k",
+            "name": "test_svd_ml100k[100]",
+            "fullname": "benchmark/test_fit_predict.py::test_svd_ml100k[100]",
+            "params": {
+                "n_factors": 100
+            },
+            "param": "100",
+            "extra_info": {
+                "rmse_stats": {
+                    "min": 0.934302146271763,
+                    "max": 0.9424899371708328,
+                    "mean": 0.9383590842240634,
+                    "stddev": 0.002897890588716339
+                }
+            },
+            "options": {
+                "disable_gc": true,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.36377340000000036,
+                "max": 0.43617130000000026,
+                "mean": 0.37888874,
+                "stddev": 0.03203341733405927,
+                "rounds": 5,
+                "median": 0.36475480000000005,
+                "iqr": 0.019634125000000058,
+                "q1": 0.3638300999999998,
+                "q3": 0.3834642249999999,
+                "iqr_outliers": 1,
+                "stddev_outliers": 1,
+                "outliers": "1;1",
+                "ld15iqr": 0.36377340000000036,
+                "hd15iqr": 0.43617130000000026,
+                "ops": 2.639297224826475,
+                "total": 1.8944437,
+                "iterations": 1
+            }
+        },
+        {
+            "group": "svdpp-ml100k",
+            "name": "test_svdpp_ml100k[10]",
+            "fullname": "benchmark/test_fit_predict.py::test_svdpp_ml100k[10]",
+            "params": {
+                "n_factors": 10
+            },
+            "param": "10",
+            "extra_info": {
+                "rmse_stats": {
+                    "min": 0.9263488028308062,
+                    "max": 0.934289098019372,
+                    "mean": 0.9308016845769702,
+                    "stddev": 0.0029313975715722284
+                }
+            },
+            "options": {
+                "disable_gc": true,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.2703660000000001,
+                "max": 0.3461129999999999,
+                "mean": 0.28612994,
+                "stddev": 0.03353748654890518,
+                "rounds": 5,
+                "median": 0.2712266000000003,
+                "iqr": 0.019864875000000115,
+                "q1": 0.27073147499999983,
+                "q3": 0.29059634999999995,
+                "iqr_outliers": 1,
+                "stddev_outliers": 1,
+                "outliers": "1;1",
+                "ld15iqr": 0.2703660000000001,
+                "hd15iqr": 0.3461129999999999,
+                "ops": 3.494915631688176,
+                "total": 1.4306497,
+                "iterations": 1
+            }
+        },
+        {
+            "group": "svdpp-ml100k",
+            "name": "test_svdpp_ml100k[100]",
+            "fullname": "benchmark/test_fit_predict.py::test_svdpp_ml100k[100]",
+            "params": {
+                "n_factors": 100
+            },
+            "param": "100",
+            "extra_info": {
+                "rmse_stats": {
+                    "min": 0.9279759214536719,
+                    "max": 0.9410107841500766,
+                    "mean": 0.9328355746996351,
+                    "stddev": 0.005834844895107628
+                }
+            },
+            "options": {
+                "disable_gc": true,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.5229577000000001,
+                "max": 0.6011373999999998,
+                "mean": 0.5401226000000001,
+                "stddev": 0.034134439897924036,
+                "rounds": 5,
+                "median": 0.5257900000000006,
+                "iqr": 0.021097049999999395,
+                "q1": 0.5239863250000003,
+                "q3": 0.5450833749999997,
+                "iqr_outliers": 1,
+                "stddev_outliers": 1,
+                "outliers": "1;1",
+                "ld15iqr": 0.5229577000000001,
+                "hd15iqr": 0.6011373999999998,
+                "ops": 1.8514315083279236,
+                "total": 2.7006130000000006,
+                "iterations": 1
+            }
+        },
+        {
+            "group": "svd-ml1m",
+            "name": "test_svd_ml1m[10]",
+            "fullname": "benchmark/test_fit_predict.py::test_svd_ml1m[10]",
+            "params": {
+                "n_factors": 10
+            },
+            "param": "10",
+            "extra_info": {
+                "rmse_stats": {
+                    "min": 0.8715809543756181,
+                    "max": 0.8782397812846905,
+                    "mean": 0.8753341491331137,
+                    "stddev": 0.0021501530733295192
+                }
+            },
+            "options": {
+                "disable_gc": true,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 2.2304133999999998,
+                "max": 3.3954717,
+                "mean": 2.4655902199999997,
+                "stddev": 0.519828088644902,
+                "rounds": 5,
+                "median": 2.2332794000000007,
+                "iqr": 0.2965588250000013,
+                "q1": 2.2307511999999985,
+                "q3": 2.527310025,
+                "iqr_outliers": 1,
+                "stddev_outliers": 1,
+                "outliers": "1;1",
+                "ld15iqr": 2.2304133999999998,
+                "hd15iqr": 3.3954717,
+                "ops": 0.4055824004688014,
+                "total": 12.327951099999998,
+                "iterations": 1
+            }
+        },
+        {
+            "group": "svd-ml1m",
+            "name": "test_svd_ml1m[100]",
+            "fullname": "benchmark/test_fit_predict.py::test_svd_ml1m[100]",
+            "params": {
+                "n_factors": 100
+            },
+            "param": "100",
+            "extra_info": {
+                "rmse_stats": {
+                    "min": 0.8723317188932561,
+                    "max": 0.8756981978951373,
+                    "mean": 0.8741500611484355,
+                    "stddev": 0.0011253077423568627
+                }
+            },
+            "options": {
+                "disable_gc": true,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 3.7987581000000006,
+                "max": 4.988588,
+                "mean": 4.042620739999999,
+                "stddev": 0.5288447296932562,
+                "rounds": 5,
+                "median": 3.806845499999998,
+                "iqr": 0.30583865000000277,
+                "q1": 3.8025909749999984,
+                "q3": 4.108429625000001,
+                "iqr_outliers": 1,
+                "stddev_outliers": 1,
+                "outliers": "1;1",
+                "ld15iqr": 3.7987581000000006,
+                "hd15iqr": 4.988588,
+                "ops": 0.24736428775161334,
+                "total": 20.213103699999998,
+                "iterations": 1
+            }
+        },
+        {
+            "group": "svdpp-ml1m",
+            "name": "test_svdpp_ml1m[10]",
+            "fullname": "benchmark/test_fit_predict.py::test_svdpp_ml1m[10]",
+            "params": {
+                "n_factors": 10
+            },
+            "param": "10",
+            "extra_info": {
+                "rmse_stats": {
+                    "min": 0.8619400523612383,
+                    "max": 0.8674234302916722,
+                    "mean": 0.8643750827092316,
+                    "stddev": 0.0020536739454208126
+                }
+            },
+            "options": {
+                "disable_gc": true,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 2.856258699999998,
+                "max": 4.024390200000006,
+                "mean": 3.09269266,
+                "stddev": 0.5208479753500934,
+                "rounds": 5,
+                "median": 2.860185999999999,
+                "iqr": 0.2985539750000079,
+                "q1": 2.8567897749999958,
+                "q3": 3.1553437500000037,
+                "iqr_outliers": 1,
+                "stddev_outliers": 1,
+                "outliers": "1;1",
+                "ld15iqr": 2.856258699999998,
+                "hd15iqr": 4.024390200000006,
+                "ops": 0.3233428309685321,
+                "total": 15.4634633,
+                "iterations": 1
+            }
+        },
+        {
+            "group": "svdpp-ml1m",
+            "name": "test_svdpp_ml1m[100]",
+            "fullname": "benchmark/test_fit_predict.py::test_svdpp_ml1m[100]",
+            "params": {
+                "n_factors": 100
+            },
+            "param": "100",
+            "extra_info": {
+                "rmse_stats": {
+                    "min": 0.870500850267959,
+                    "max": 0.8729994914970814,
+                    "mean": 0.8720237902250908,
+                    "stddev": 0.000824806564842319
+                }
+            },
+            "options": {
+                "disable_gc": true,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 5.666507899999999,
+                "max": 6.867665200000005,
+                "mean": 5.927029039999999,
+                "stddev": 0.5262006701356634,
+                "rounds": 5,
+                "median": 5.705710499999995,
+                "iqr": 0.32737107500000917,
+                "q1": 5.676309199999995,
+                "q3": 6.003680275000004,
+                "iqr_outliers": 1,
+                "stddev_outliers": 1,
+                "outliers": "1;1",
+                "ld15iqr": 5.666507899999999,
+                "hd15iqr": 6.867665200000005,
+                "ops": 0.16871859294956315,
+                "total": 29.635145199999997,
+                "iterations": 1
+            }
+        },
+        {
+            "group": "svd-ml10m",
+            "name": "test_svd_ml10m[10]",
+            "fullname": "benchmark/test_fit_predict.py::test_svd_ml10m[10]",
+            "params": {
+                "n_factors": 10
+            },
+            "param": "10",
+            "extra_info": {
+                "rmse_stats": {
+                    "min": 0.8142251847952834,
+                    "max": 0.8153648994382724,
+                    "mean": 0.8147069038592539,
+                    "stddev": 0.00042736706008674456
+                }
+            },
+            "options": {
+                "disable_gc": true,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 23.598406099999977,
+                "max": 43.12589369999999,
+                "mean": 27.51876128,
+                "stddev": 8.724688027391444,
+                "rounds": 5,
+                "median": 23.607476900000023,
+                "iqr": 4.925183725,
+                "q1": 23.601206749999996,
+                "q3": 28.526390474999996,
+                "iqr_outliers": 1,
+                "stddev_outliers": 1,
+                "outliers": "1;1",
+                "ld15iqr": 23.598406099999977,
+                "hd15iqr": 43.12589369999999,
+                "ops": 0.036338844972894066,
+                "total": 137.5938064,
+                "iterations": 1
+            }
+        },
+        {
+            "group": "svd-ml10m",
+            "name": "test_svd_ml10m[100]",
+            "fullname": "benchmark/test_fit_predict.py::test_svd_ml10m[100]",
+            "params": {
+                "n_factors": 100
+            },
+            "param": "100",
+            "extra_info": {
+                "rmse_stats": {
+                    "min": 0.8096394834134601,
+                    "max": 0.810324467437054,
+                    "mean": 0.8099965053208894,
+                    "stddev": 0.0002587768220494435
+                }
+            },
+            "options": {
+                "disable_gc": true,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 40.4939584,
+                "max": 60.2116029,
+                "mean": 44.53320153999999,
+                "stddev": 8.765108803885377,
+                "rounds": 5,
+                "median": 40.64038929999998,
+                "iqr": 5.093213149999968,
+                "q1": 40.53661000000001,
+                "q3": 45.62982314999998,
+                "iqr_outliers": 1,
+                "stddev_outliers": 1,
+                "outliers": "1;1",
+                "ld15iqr": 40.4939584,
+                "hd15iqr": 60.2116029,
+                "ops": 0.022455156274847968,
+                "total": 222.66600769999997,
+                "iterations": 1
+            }
+        },
+        {
+            "group": "svdpp-ml10m",
+            "name": "test_svdpp_ml10m[10]",
+            "fullname": "benchmark/test_fit_predict.py::test_svdpp_ml10m[10]",
+            "params": {
+                "n_factors": 10
+            },
+            "param": "10",
+            "extra_info": {
+                "rmse_stats": {
+                    "min": 0.7961203656778106,
+                    "max": 0.7986028062780947,
+                    "mean": 0.7975824138602177,
+                    "stddev": 0.0008834687976406114
+                }
+            },
+            "options": {
+                "disable_gc": true,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 29.110281900000018,
+                "max": 48.690362600000014,
+                "mean": 33.11284142000003,
+                "stddev": 8.70840310084179,
+                "rounds": 5,
+                "median": 29.278698400000053,
+                "iqr": 4.967736425000069,
+                "q1": 29.173036424999992,
+                "q3": 34.14077285000006,
+                "iqr_outliers": 1,
+                "stddev_outliers": 1,
+                "outliers": "1;1",
+                "ld15iqr": 29.110281900000018,
+                "hd15iqr": 48.690362600000014,
+                "ops": 0.030199764113145657,
+                "total": 165.56420710000015,
+                "iterations": 1
+            }
+        },
+        {
+            "group": "svdpp-ml10m",
+            "name": "test_svdpp_ml10m[100]",
+            "fullname": "benchmark/test_fit_predict.py::test_svdpp_ml10m[100]",
+            "params": {
+                "n_factors": 100
+            },
+            "param": "100",
+            "extra_info": {
+                "rmse_stats": {
+                    "min": 0.793020705045998,
+                    "max": 0.7952032768035259,
+                    "mean": 0.794041118920463,
+                    "stddev": 0.0007733885939552359
+                }
+            },
+            "options": {
+                "disable_gc": true,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 63.20950970000001,
+                "max": 82.66762989999995,
+                "mean": 67.29021156000002,
+                "stddev": 8.597577520516598,
+                "rounds": 5,
+                "median": 63.55067900000006,
+                "iqr": 5.001253399999996,
+                "q1": 63.36773045000001,
+                "q3": 68.36898385,
+                "iqr_outliers": 1,
+                "stddev_outliers": 1,
+                "outliers": "1;1",
+                "ld15iqr": 63.20950970000001,
+                "hd15iqr": 82.66762989999995,
+                "ops": 0.014861002467028057,
+                "total": 336.45105780000006,
+                "iterations": 1
+            }
+        }
+    ],
+    "datetime": "2021-10-21T23:48:39.502930",
+    "version": "3.4.1"
+}
